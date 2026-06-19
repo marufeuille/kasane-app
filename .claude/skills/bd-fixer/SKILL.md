@@ -15,11 +15,11 @@ description: レビューで差し戻された（needs-fix の）bd タスクを
 
 3. **修正**: NG 理由で指摘された点に **限定して** 修正する。目的は受け入れ条件を満たすこと。指摘外の過剰なリファクタや機能追加はしない。判断に迷う点があれば note に書いて確認する。
 
-4. **品質ゲート**: 品質ゲート（`npm run build` / `npm test` / lint 等、存在するもの）を再実行して通す。**同じ問題で 3 回以上スタックしたら中断**し、`bd note <id> --append "blocked: ..."` に状況を残して報告する。
+4. **品質ゲート**: 品質ゲート（`npm run build` / `npm test` / lint 等、存在するもの）を再実行して通す。**同じ問題で 3 回以上スタックしたら中断**し、`bd note <id> "blocked: ..."` に状況を残して報告する。
 
 5. **再レビューへ**:
    - 自ブランチに commit → `git push`（同じ PR が自動で更新される）。
-   - `bd note <id> --append "fix: 対応した NG 項目とその内容"` を記録。
+   - `bd note <id> "fix: 対応した NG 項目とその内容"` を記録。
    - `bd update <id> --remove-label needs-fix --add-label needs-review`（status は `in_progress` のまま）。
 
 ## ワークフロー上の位置づけ
