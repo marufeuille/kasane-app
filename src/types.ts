@@ -138,3 +138,12 @@ export interface Setting<T = unknown> {
 
 /** settings テーブルで BYOK の Gemini API キーを格納するキー。 */
 export const API_KEY_SETTING_KEY = 'gemini.apiKey'
+
+/** settings テーブルで Gemini モデル名を格納するキー（任意設定）。 */
+export const MODEL_SETTING_KEY = 'gemini.model'
+
+/** settings テーブルでプロキシ URL（CORS 回避用）を格納するキー（任意設定）。 */
+export const PROXY_URL_SETTING_KEY = 'gemini.proxyUrl'
+
+/** Gemini モデル名のデフォルト（nano banana / gemini-2.5-flash-image）。 */
+export const DEFAULT_MODEL = 'gemini-2.5-flash-image'

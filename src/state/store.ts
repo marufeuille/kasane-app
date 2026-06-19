@@ -24,6 +24,7 @@ import {
   putLayer,
   putLayers,
   putProject,
+  setApiKey,
 } from '../db/db'
 import type {
   AspectRatio,
@@ -105,6 +106,8 @@ export interface KasaneState {
 
   /* ---- settings (BYOK) ---- */
 
+  /** API キーを IndexedDB に保存（空文字はクリア扱い）し、store に反映。 */
+  saveApiKey: (key: string) => Promise<void>
   /** IndexedDB から API キーを再読込して store に反映。 */
   refreshApiKey: () => Promise<void>
 }
@@ -313,6 +316,12 @@ export const useKasane = create<KasaneState>((set, get) => {
     loadImageBlob: async (id) => getImageBlob(id),
 
     /* ---- settings (BYOK) ---- */
+
+    saveApiKey: async (key) => {
+      // 空文字は削除扱い（db.setApiKey に準拠）。store 上は未設定=null。
+      await setApiKey(key)
+      set({ apiKey: key === '' ? null : key })
+    },
 
     refreshApiKey: async () => {
       const key = await getApiKey()

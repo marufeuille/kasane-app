@@ -5,13 +5,17 @@ import {
   deleteProject,
   getApiKey,
   getLayersByProject,
+  getModel,
   getProject,
+  getProxyUrl,
   getSetting,
   listProjects,
   putImageBlob,
   putLayer,
   putProject,
   setApiKey,
+  setModel,
+  setProxyUrl,
   setSetting,
 } from './db'
 import type { ImageBlob, Layer, Project } from '../types'
@@ -125,5 +129,19 @@ describe('settings (BYOK キー等)', () => {
     await setApiKey('secret')
     await setApiKey('')
     expect(await getApiKey()).toBeUndefined()
+  })
+
+  it('モデル名の設定/取得/空文字はクリア扱い', async () => {
+    await setModel('gemini-2.5-flash-image')
+    expect(await getModel()).toBe('gemini-2.5-flash-image')
+    await setModel('')
+    expect(await getModel()).toBeUndefined()
+  })
+
+  it('プロキシ URL の設定/取得/空文字はクリア扱い', async () => {
+    await setProxyUrl('https://worker.example.dev/')
+    expect(await getProxyUrl()).toBe('https://worker.example.dev/')
+    await setProxyUrl('')
+    expect(await getProxyUrl()).toBeUndefined()
   })
 })
