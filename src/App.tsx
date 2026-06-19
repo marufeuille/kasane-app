@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AspectRatio } from './types'
+import { useKasane } from './state/store'
 import CanvasStage from './canvas/CanvasStage'
 import StylePanel from './panels/Style'
 import AddPartPanel from './panels/AddPart'
@@ -16,6 +17,15 @@ const ASPECTS: AspectRatio[] = ['1:1', '4:5', '9:16', '16:9']
  */
 export default function App() {
   const [aspect, setAspect] = useState<AspectRatio>('1:1')
+  const apiKey = useKasane((s) => s.apiKey)
+  const hydrate = useKasane((s) => s.hydrate)
+
+  // 起動時に IndexedDB から直近プロジェクトと API キーを復元（リロード後の状態回復）。
+  useEffect(() => {
+    void hydrate()
+  }, [hydrate])
+
+  const configured = Boolean(apiKey)
 
   return (
     <div className="app">
@@ -41,7 +51,18 @@ export default function App() {
       <main className="app__main">
         <aside className="app__sidebar app__sidebar--left">
           <StylePanel />
-          <AddPartPanel />
+          {/* apiKey 未設定時は生成系 UI（AddPart）を無効化し、Settings への導線を出す */}
+          <div className={`panel-lock-wrap${configured ? '' : ' is-locked'}`}>
+            <AddPartPanel />
+            {!configured && (
+              <div className="panel-lock" role="alert">
+                <p className="panel-lock__msg">API キー未設定</p>
+                <a className="panel-lock__cta" href="#settings">
+                  Settings で設定 →
+                </a>
+              </div>
+            )}
+          </div>
         </aside>
 
         <section className="app__stage">
@@ -56,7 +77,7 @@ export default function App() {
       </main>
 
       <footer className="app__footer">
-        <span>生成と配置を分離する広告画像オーサリング — scaffold (S1.1 / dt-4n4.1)</span>
+        <span>生成と配置を分離する広告画像オーサリング — BYOK 設定 (S1.3 / dt-4n4.3)</span>
       </footer>
     </div>
   )

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db } from '../db/db'
+import { db, getApiKey } from '../db/db'
 import { genId, useKasane } from './store'
 import { API_KEY_SETTING_KEY, type Layer, type Project } from '../types'
 
@@ -196,5 +196,28 @@ describe('project updates', () => {
     expect(useKasane.getState().project?.aspectRatio).toBe('16:9')
     const fromDb = await db.projects.get(p.id)
     expect(fromDb?.aspectRatio).toBe('16:9')
+  })
+})
+
+describe('settings (BYOK) — saveApiKey', () => {
+  it('saveApiKey でキーを保存し、store と DB の両方に反映する', async () => {
+    await useKasane.getState().saveApiKey('MY-KEY')
+    expect(useKasane.getState().apiKey).toBe('MY-KEY')
+    expect(await getApiKey()).toBe('MY-KEY')
+  })
+
+  it('saveApiKey("") はクリア扱い（store/apiKey=null・DB から削除）', async () => {
+    await useKasane.getState().saveApiKey('MY-KEY')
+    await useKasane.getState().saveApiKey('')
+    expect(useKasane.getState().apiKey).toBeNull()
+    expect(await getApiKey()).toBeUndefined()
+  })
+
+  it('保存したキーは再読込（refreshApiKey）で復元される = リロード後保持', async () => {
+    await useKasane.getState().saveApiKey('PERSIST')
+    // メモリ上の apiKey を失わせ、IndexedDB からの再読込をシミュレート
+    useKasane.setState({ apiKey: null })
+    await useKasane.getState().refreshApiKey()
+    expect(useKasane.getState().apiKey).toBe('PERSIST')
   })
 })

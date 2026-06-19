@@ -13,6 +13,8 @@
 import Dexie, { type Table } from 'dexie'
 import {
   API_KEY_SETTING_KEY,
+  MODEL_SETTING_KEY,
+  PROXY_URL_SETTING_KEY,
   type ImageBlob,
   type Layer,
   type Project,
@@ -151,4 +153,32 @@ export async function setApiKey(key: string): Promise<void> {
 /** BYOK の Gemini API キーを削除。 */
 export async function clearApiKey(): Promise<void> {
   await deleteSetting(API_KEY_SETTING_KEY)
+}
+
+/** Gemini モデル名を取得（未設定=undefined。呼び出し側でデフォルトを適用）。 */
+export async function getModel(): Promise<string | undefined> {
+  return getSetting<string>(MODEL_SETTING_KEY)
+}
+
+/** Gemini モデル名を保存。空文字は未設定扱い（削除）。 */
+export async function setModel(value: string): Promise<void> {
+  if (value === '') {
+    await deleteSetting(MODEL_SETTING_KEY)
+    return
+  }
+  await setSetting(MODEL_SETTING_KEY, value)
+}
+
+/** プロキシ URL（CORS 回避用）を取得（未設定=undefined=直接アクセス）。 */
+export async function getProxyUrl(): Promise<string | undefined> {
+  return getSetting<string>(PROXY_URL_SETTING_KEY)
+}
+
+/** プロキシ URL を保存。空文字は未設定扱い（削除=直接アクセス）。 */
+export async function setProxyUrl(value: string): Promise<void> {
+  if (value === '') {
+    await deleteSetting(PROXY_URL_SETTING_KEY)
+    return
+  }
+  await setSetting(PROXY_URL_SETTING_KEY, value)
 }
