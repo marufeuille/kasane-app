@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { db, getApiKey } from '../db/db'
 import { genId, useKasane } from './store'
 import { API_KEY_SETTING_KEY, type Layer, type Project } from '../types'
+import { defaultStyleSpec } from '../style/presets'
 
 /** DB の全テーブルをクリア（スキーマ維持）。 */
 async function clearAll(): Promise<void> {
@@ -129,7 +130,7 @@ describe('hydrate — リロード後の復元', () => {
       name: 'old',
       aspectRatio: '1:1',
       resolution: '1K',
-      styleSpec: { mood: 'pop' },
+      styleSpec: { ...defaultStyleSpec(), moodPreset: 'pop' },
       createdAt: 1,
       updatedAt: 1,
     }
@@ -138,7 +139,7 @@ describe('hydrate — リロード後の復元', () => {
       name: 'new',
       aspectRatio: '4:5',
       resolution: '2K',
-      styleSpec: { mood: 'luxe' },
+      styleSpec: { ...defaultStyleSpec(), moodPreset: 'luxe' },
       createdAt: 2,
       updatedAt: 5,
     }
@@ -177,17 +178,42 @@ describe('hydrate — リロード後の復元', () => {
 
 describe('project updates', () => {
   it('setStyleSpec で部分更新し DB に反映', async () => {
-    const p = await useKasane.getState().createProject({ styleSpec: { mood: 'pop' } })
-    await useKasane.getState().setStyleSpec({ mood: 'pop2', brief: '明るく' })
+    const p = await useKasane.getState().createProject({
+      styleSpec: { ...defaultStyleSpec(), moodPreset: 'pop' },
+    })
+    await useKasane.getState().setStyleSpec({ moodPreset: 'luxe', brief: '明るく' })
 
     const cur = useKasane.getState().project
-    expect(cur?.styleSpec.mood).toBe('pop2')
+    expect(cur?.styleSpec.moodPreset).toBe('luxe')
     expect(cur?.styleSpec.brief).toBe('明るく')
+    // moodPreset 以外の既定フィールド（palette 等）は維持される
+    expect(cur?.styleSpec.palette).toEqual([])
 
     const fromDb = await db.projects.get(p.id)
     expect(fromDb?.styleSpec.brief).toBe('明るく')
     // updatedAt が進む
     expect(fromDb?.updatedAt).toBeGreaterThan(p.updatedAt)
+  })
+
+  it('setStyleSpec で palette / decoration / refLayerIds も保存・復元される（acceptance）', async () => {
+    const p = await useKasane.getState().createProject()
+    await useKasane.getState().setStyleSpec({
+      palette: ['#FF0000', '#00FF00'],
+      decoration: 'キラキラのラメ',
+      language: 'en',
+      refLayerIds: ['l1', 'l2'],
+    })
+
+    const cur = useKasane.getState().project
+    expect(cur?.styleSpec.palette).toEqual(['#FF0000', '#00FF00'])
+    expect(cur?.styleSpec.refLayerIds).toEqual(['l1', 'l2'])
+
+    // DB にも保持される（リロード復元相当）
+    const fromDb = await db.projects.get(p.id)
+    expect(fromDb?.styleSpec.palette).toEqual(['#FF0000', '#00FF00'])
+    expect(fromDb?.styleSpec.decoration).toBe('キラキラのラメ')
+    expect(fromDb?.styleSpec.language).toBe('en')
+    expect(fromDb?.styleSpec.refLayerIds).toEqual(['l1', 'l2'])
   })
 
   it('setAspectRatio で比率を変更し DB に反映', async () => {

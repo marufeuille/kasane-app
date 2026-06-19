@@ -26,6 +26,7 @@ import {
   putProject,
   setApiKey,
 } from '../db/db'
+import { defaultStyleSpec } from '../style/presets'
 import type {
   AspectRatio,
   ImageBlob,
@@ -194,7 +195,7 @@ export const useKasane = create<KasaneState>((set, get) => {
         name: input.name ?? 'Untitled',
         aspectRatio: input.aspectRatio ?? '1:1',
         resolution: input.resolution ?? '1K',
-        styleSpec: input.styleSpec ?? { mood: '' },
+        styleSpec: input.styleSpec ?? defaultStyleSpec(),
         createdAt: now,
         updatedAt: now,
       }
