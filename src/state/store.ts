@@ -128,9 +128,15 @@ export function defaultTransform(): Transform {
 /**
  * project を updatedAt 更新付きで DB に保存し、更新後の project を返す。
  * createdAt は維持、updatedAt は現在時刻へ。
+ *
+ * 単調増加を保証するため、現在時刻が前回の updatedAt を超えない（同一ミリ秒内の連続更新）
+ * 場合は前回値 +1ms を使う。これにより createProject→setStyleSpec のような同一ティック内の
+ * 連続操作でも updatedAt が厳密に進み、更新順序の比較が環境に依存しない。
  */
 async function persistProject(project: Project): Promise<Project> {
-  const next: Project = { ...project, updatedAt: Date.now() }
+  const now = Date.now()
+  const updatedAt = now > project.updatedAt ? now : project.updatedAt + 1
+  const next: Project = { ...project, updatedAt }
   await putProject(next)
   return next
 }
