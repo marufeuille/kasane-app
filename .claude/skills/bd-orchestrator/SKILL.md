@@ -25,7 +25,7 @@ description: ユーザーから新しい機能・要望をヒアリングして 
    - `bd dep cycles` … 依存の循環がないか。
    - `bd ready --explain` … 「最初に着手可能なタスク」が想定どおり浮くか、ブロック理由が正しいか。
 
-5. **（任意）ファンアウト**: ユーザーが明示的に「実装も進めて」と言った場合 **のみ**、`bd ready` の各タスクに対して **bd-implementer を同一レスポンスで並列サブエージェント起動**します（`subagent_type="general-purpose"`、1 タスク 1 エージェント、各自が worktree を切るので並列安全）。指示がなければ起動しないこと。
+5. **（任意）ファンアウト**: ユーザーが明示的に「実装も進めて」と言った場合 **のみ**、`bd ready` の各タスクに対して **`bd-implementer` サブエージェントを同一レスポンスで並列起動**します（Agent ツール、`subagent_type="bd-implementer"`、1 タスク 1 エージェント、各自が worktree を切るので並列安全）。実装者が PR を出して `needs-review` になったら、続けて `subagent_type="bd-reviewer"` を、差し戻し（`needs-fix`）が出たら `subagent_type="bd-fixer"` を起動してループを回せます（ただしマージは bd-reviewer がユーザー確認を挟む）。指示がなければ起動しないこと。
 
 ## ワークフロー上の位置づけ
 
