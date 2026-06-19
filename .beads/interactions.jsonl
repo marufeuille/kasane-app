@@ -7,3 +7,4 @@
 {"id":"int-3b369982","kind":"field_change","created_at":"2026-06-19T21:00:18.469119Z","actor":"Masahiro Ishii","issue_id":"dt-tud.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-59cad11f","kind":"field_change","created_at":"2026-06-19T21:22:54.749226Z","actor":"Masahiro Ishii","issue_id":"dt-tud.3","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-8ba98da0","kind":"field_change","created_at":"2026-06-19T21:48:38.460428Z","actor":"Masahiro Ishii","issue_id":"dt-tud.2","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-8a875b3d","kind":"field_change","created_at":"2026-06-19T22:31:23.92229Z","actor":"Masahiro Ishii","issue_id":"dt-5ae.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"PR #11 squash merged (d2a280c). 受け入れ条件5件全充足・build/test(63) Pass を確認しレビュー承認。"}}
