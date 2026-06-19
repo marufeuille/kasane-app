@@ -18,3 +18,5 @@ dist-ssr/
 *.log
 .vscode/
 .idea/
+# bd worktree (bd-implementer creates <repo>/dt-<id> worktrees)
+dt-*/
