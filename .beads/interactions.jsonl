@@ -3,3 +3,4 @@
 {"id":"int-53a4492b","kind":"field_change","created_at":"2026-06-19T11:40:50.341021Z","actor":"Masahiro Ishii","issue_id":"dt-4n4","extra":{"field":"status","new_value":"open","old_value":"in_progress"}}
 {"id":"int-6deebf1f","kind":"field_change","created_at":"2026-06-19T11:45:12.781947Z","actor":"Masahiro Ishii","issue_id":"dt-ajf","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"README に開発フローと worktree ベースの PR 手順を追加"}}
 {"id":"int-328264cc","kind":"field_change","created_at":"2026-06-19T11:59:14.037896Z","actor":"Masahiro Ishii","issue_id":"dt-4n4.3","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-1899484d","kind":"field_change","created_at":"2026-06-19T20:30:37.00391Z","actor":"Masahiro Ishii","issue_id":"dt-4n4.4","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
