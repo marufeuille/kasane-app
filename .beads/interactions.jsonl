@@ -6,3 +6,4 @@
 {"id":"int-1899484d","kind":"field_change","created_at":"2026-06-19T20:30:37.00391Z","actor":"Masahiro Ishii","issue_id":"dt-4n4.4","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-3b369982","kind":"field_change","created_at":"2026-06-19T21:00:18.469119Z","actor":"Masahiro Ishii","issue_id":"dt-tud.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-59cad11f","kind":"field_change","created_at":"2026-06-19T21:22:54.749226Z","actor":"Masahiro Ishii","issue_id":"dt-tud.3","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-8ba98da0","kind":"field_change","created_at":"2026-06-19T21:48:38.460428Z","actor":"Masahiro Ishii","issue_id":"dt-tud.2","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
