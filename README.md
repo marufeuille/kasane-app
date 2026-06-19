@@ -1,12 +1,114 @@
 # Kasane Studio
 
-Gemini を使った広告画像オーサリング PWA。生成と配置・微調整を分離し、ローカルのレイヤーキャンバスで再現性のある編集体験を作る。
+Gemini（`gemini-2.5-flash-image` / nano banana）を使った広告画像オーサリング PWA。
+**「生成」と「配置・微調整」を分離**し、プロンプトガチャを消すことを目的とする。
+
+- Gemini は「パーツの見た目生成」と「写真全体の加工」に専念
+- 配置 / 移動 / 拡縮 / 回転 / 透過 は **ローカルのレイヤーキャンバスで即時・API 不要**
+- `StyleSpec`（雰囲気）を一度設定すれば全パーツ生成に自動注入され、既存パーツを参照画像化して統一感を出せる
+- ユーザーは自由文ではなくフィールド入力 → アプリが決定論的にプロンプトを組み立てて再現性を担保
+
+> **確定方針**: PWA（Mac / iPad）。**デプロイは行わない**（BYOK でローカル完結）。LLM は **BYOK**（まず Gemini のみ）。
 
 詳細なプロジェクト方針と AI agent 向けの作業規約は [CLAUDE.md](./CLAUDE.md) と [AGENTS.md](./AGENTS.md) を参照。
+
+---
+
+## 必要環境
+
+- **Node.js 22.x**（動作確認: v22.14.0）
+- npm（リポジトリ同梱の `package-lock.json` を使用）
+
+## セットアップ
+
+```bash
+npm install
+```
+
+## スクリプト
+
+| コマンド | 内容 |
+| --- | --- |
+| `npm run dev` | Vite 開発サーバー起動（既定で `--host` 相当 = 全インターフェースでリッスン） |
+| `npm run build` | 型チェック (`tsc`) + PWA 本番ビルド |
+| `npm run preview` | 本番ビルドをローカルでプレビュー |
+| `npm test` | Vitest を 1 回実行 |
+| `npm run test:watch` | Vitest を watch モードで実行 |
+
+> `vite.config.ts` の `server.host: true` により、`npm run dev` 単体でも同一 LAN からのアクセスを受け付けます。後述の **`npm run dev -- --host`** の明示形式を標準運用とします（Network URL の表示が確実なため）。
+
+## ローカル開発・実機での動作確認
+
+このプロジェクトは **クラウドへのデプロイを行わず、ローカルの dev server を Mac / iPad 実機で開いて** レビュー・動作確認します。
+
+### 1. dev server を起動する
+
+```bash
+npm run dev -- --host
+```
+
+起動すると、以下のように複数の URL が表示されます。
+
+```
+  VITE v5.x  ready in xxx ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.x.x:5173/   ← これを実機で開く
+```
+
+### 2. Mac で確認する
+
+- ブラウザで `Local:` の URL（`http://localhost:5173/`）を開く。
+
+### 3. iPad / 別端末で確認する（同一 LAN 必須）
+
+1. **iPad を Mac と同じ Wi-Fi ネットワークに接続**する。
+2. iPad の Safari 等で、ターミナルに表示された **`Network:` URL**（例: `http://192.168.x.x:5173/`）を入力する。
+3. アプリ画面が表示されれば OK。
+
+> **トラブルシュート**: iPad で開けない場合は、Mac と iPad が同じ Wi-Fi に接続されているか確認してください。職場ネットワーク等でクライアント分離（AP isolation）が有効な場合は、テザリングやモバイルルーター等の別ネットワークをお試しください。
+
+### 4. PWA としてホーム画面に追加（任意）
+
+iPad / iPhone で開いた状態で **共有 → ホーム画面に追加**。以降はスタンドアロンアプリとして起動できます（manifest は `vite.config.ts` で設定済み）。
+
+---
+
+## 技術スタック
+
+React + TypeScript + Vite / `vite-plugin-pwa` / Konva.js + react-konva（レイヤー & Transformer）/
+Zustand / Dexie（IndexedDB） / `@imgly/background-removal` / Gemini は `:generateContent` の薄ラッパ。
+
+## プロジェクト構成
+
+```
+src/
+  types.ts                 # 共通型
+  state/store.ts           # Zustand ストア
+  db/db.ts                 # Dexie(IndexedDB) スキーマ
+  gemini/{client,prompt}.ts
+  style/presets.ts
+  bg/removeBackground.ts
+  canvas/{CanvasStage,LayerNode}.tsx   # react-konva + Transformer
+  panels/{Style,AddPart,Layers,Inspector,Settings}.tsx
+  export/exportImage.ts
+  App.tsx  main.tsx
+```
+
+---
 
 ## 開発フロー
 
 このリポジトリでは作業管理に `bd` (beads) を使う。通常の作業は、issue を claim してから **PR ごとに専用の git worktree** を作り、他のローカル環境や未完了作業と分離して進める。
+
+```bash
+bd ready            # 着手可能なタスクを表示
+bd show <id>        # 詳細
+bd update <id> --claim
+bd close <id>
+```
+
+PR を作成する際は `.github/PULL_REQUEST_TEMPLATE.md` が自動的に展開されます。**動作確認手順（ローカル dev）** 欄に従って、実機での確認結果を記載してください。
 
 ## ワークフローアーキテクチャ
 
