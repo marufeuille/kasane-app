@@ -15,12 +15,12 @@ description: bd（beads, prefix dt）の ready なタスクを 1 件取り出し
 
 3. **実装**: 受け入れ条件（What）を満たすよう自律的に実装する。How は裁量。既存のコード規約・周辺パターンに合わせること。着手中に派生した必須作業は `bd create --parent <story-id> --deps 'discovered-from:<id>' --description "..." --acceptance "..."` でぶら下げる（その場で勝手に広げない）。
 
-4. **品質ゲート**: プロジェクトのゲートが存在すれば実行する（`npm run build` / `npm test` / lint 等。プロジェクトがまだ scaffold 前なら該当するものだけ）。失敗は自律的に解析・修正してパスさせる。**同じ問題で 3 回以上スタックしたら中断**し、`bd note <id> --append "blocked: ..."` に状況を残してユーザーに報告する。
+4. **品質ゲート**: プロジェクトのゲートが存在すれば実行する（`npm run build` / `npm test` / lint 等。プロジェクトがまだ scaffold 前なら該当するものだけ）。失敗は自律的に解析・修正してパスさせる。**同じ問題で 3 回以上スタックしたら中断**し、`bd note <id> "blocked: ..."` に状況を残してユーザーに報告する。
 
 5. **コミット & PR & レビュー待ち化**:
    - 自ブランチに commit（`main` には触れない）。
    - `git push -u origin <id>` でブランチを push し、`gh pr create` で PR を作る（タイトル/本文に issue ID・実装サマリ・受け入れ条件の充足・ゲート結果を書く）。
-   - `bd note <id> --append "PR: <url> / branch: <id> / 実装サマリ / ゲート結果"` を記録。
+   - `bd note <id> "PR: <url> / branch: <id> / 実装サマリ / ゲート結果"` を記録。
    - `bd update <id> --add-label needs-review`（status は `in_progress` のまま）。これでレビュー待ちになる。
 
 ## ワークフロー上の位置づけ
