@@ -3,3 +3,18 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# Node / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+*.log
+.vscode/
+.idea/
