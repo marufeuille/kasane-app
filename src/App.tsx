@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import type { AspectRatio } from './types'
+import { useEffect } from 'react'
 import { useKasane } from './state/store'
+import { ASPECT_ORDER } from './canvas/presets'
 import CanvasStage from './canvas/CanvasStage'
 import StylePanel from './panels/Style'
 import AddPartPanel from './panels/AddPart'
@@ -8,23 +8,30 @@ import LayersPanel from './panels/Layers'
 import InspectorPanel from './panels/Inspector'
 import SettingsPanel from './panels/Settings'
 
-const ASPECTS: AspectRatio[] = ['1:1', '4:5', '9:16', '16:9']
-
 /**
- * Kasane Studio アプリケーションシェル（scaffold / S1.1）。
+ * Kasane Studio アプリケーションシェル（scaffold / S1.1 + S3.1）。
  * 生成（Gemini）と配置・微調整（ローカルレイヤーキャンバス）を分離するレイアウトの骨組み。
- * 各パネル・キャンバスの中身は後続ストーリー（E2/E3/E4/E5/E6）で実装される。
+ * キャンバス（CanvasStage）は S3.1（dt-5ae.1）で react-konva 化済み。
  */
 export default function App() {
-  const [aspect, setAspect] = useState<AspectRatio>('1:1')
+  const project = useKasane((s) => s.project)
+  const status = useKasane((s) => s.status)
   const apiKey = useKasane((s) => s.apiKey)
   const hydrate = useKasane((s) => s.hydrate)
+  const createProject = useKasane((s) => s.createProject)
+  const setAspectRatio = useKasane((s) => s.setAspectRatio)
 
   // 起動時に IndexedDB から直近プロジェクトと API キーを復元（リロード後の状態回復）。
   useEffect(() => {
     void hydrate()
   }, [hydrate])
 
+  // 復元済みでプロジェクトが無ければ新規作成（初回起動・直近プロジェクト削除後）。
+  useEffect(() => {
+    if (status === 'ready' && !project) void createProject()
+  }, [status, project, createProject])
+
+  const aspect = project?.aspectRatio ?? '1:1'
   const configured = Boolean(apiKey)
 
   return (
@@ -35,12 +42,12 @@ export default function App() {
           <span className="app__brand-name">Kasane Studio</span>
         </div>
         <nav className="app__aspect" aria-label="Aspect ratio">
-          {ASPECTS.map((a) => (
+          {ASPECT_ORDER.map((a) => (
             <button
               key={a}
               type="button"
               className={`chip ${a === aspect ? 'chip--active' : ''}`}
-              onClick={() => setAspect(a)}
+              onClick={() => void setAspectRatio(a)}
             >
               {a}
             </button>
@@ -66,7 +73,7 @@ export default function App() {
         </aside>
 
         <section className="app__stage">
-          <CanvasStage aspect={aspect} />
+          <CanvasStage />
         </section>
 
         <aside className="app__sidebar app__sidebar--right">
@@ -77,7 +84,7 @@ export default function App() {
       </main>
 
       <footer className="app__footer">
-        <span>生成と配置を分離する広告画像オーサリング — BYOK 設定 (S1.3 / dt-4n4.3)</span>
+        <span>生成と配置を分離する広告画像オーサリング — レイヤーキャンバス (S3.1 / dt-5ae.1) · BYOK (S1.3 / dt-4n4.3)</span>
       </footer>
     </div>
   )
