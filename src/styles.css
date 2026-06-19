@@ -180,26 +180,51 @@ body {
   border-color: var(--accent);
 }
 
-/* Canvas stage placeholder */
-.canvas-stage {
-  width: min(620px, 100%);
-  aspect-ratio: var(--stage-ratio, 1 / 1);
-  max-height: 78vh;
+/* Canvas stage（react-konva） */
+.canvas-stage-wrap {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.canvas-stage {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius);
-  background:
-    linear-gradient(var(--bg-panel), var(--bg-panel)) padding-box,
-    repeating-conic-gradient(#1b294a 0% 25%, #16223d 0% 50%) 50% / 24px 24px;
+  /* 透明感のある碁盤目背景で、出力に透明部がある場合も視認できる */
+  background: repeating-conic-gradient(#1b294a 0% 25%, #16223d 0% 50%) 50% /
+    24px 24px;
   border: 1px solid var(--border);
   overflow: hidden;
+  cursor: pointer;
+  /* iPad のタッチ操作が破綻しないよう、キャンバス面上ではブラウザの
+     スクロール/ピンチを無効化して Konva にイベントを渡す */
+  touch-action: none;
+}
+
+.canvas-stage__inner {
   position: relative;
+  line-height: 0; /* Konva canvas の行内ギャップ抑制 */
+}
+
+.canvas-stage__inner canvas {
+  display: block;
 }
 
 .canvas-stage__aspect {
   position: absolute;
   top: 10px;
   left: 12px;
+  z-index: 2;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -208,13 +233,61 @@ body {
   background: rgba(15, 23, 42, 0.6);
   padding: 3px 8px;
   border-radius: 999px;
+  pointer-events: none;
 }
 
-.canvas-stage__placeholder {
-  margin: auto;
-  color: var(--text-faint);
-  font-size: 13px;
+.canvas-stage__empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   text-align: center;
+  pointer-events: none;
+}
+
+.canvas-stage__empty-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.canvas-stage__empty-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.canvas-stage.is-dragging {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent-soft);
+}
+
+.canvas-stage__file-input {
+  display: none;
+}
+
+.canvas-stage__loading {
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-stage__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.canvas-stage__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
 }
 
 /* Footer */
