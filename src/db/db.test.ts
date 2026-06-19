@@ -19,6 +19,7 @@ import {
   setSetting,
 } from './db'
 import type { ImageBlob, Layer, Project } from '../types'
+import { defaultStyleSpec } from '../style/presets'
 
 /** 全テーブルのデータをクリア（スキーマは維持）。テスト間の独立性を担保。 */
 async function clearAll(): Promise<void> {
@@ -33,7 +34,7 @@ function makeProject(over: Partial<Project> = {}): Project {
     name: 'demo',
     aspectRatio: '1:1',
     resolution: '1K',
-    styleSpec: { mood: 'pop' },
+    styleSpec: defaultStyleSpec(),
     createdAt: NOW,
     updatedAt: NOW,
     ...over,

@@ -92,17 +92,26 @@ export type Layer = PhotoLayer | AiPartLayer | TextLayer
 /**
  * スタイル統一（StyleSpec）。雰囲気を一度設定し、全パーツ生成に
  * 決定論的に注入して統一感を出す（プロンプトガチャを消す中核）。
- * mood プリセット・プロンプト組み立ては S4.1/S4.3（dt-tud）で拡張する。
+ *
+ * 各フィールドは mood プリセット選択で初期値が入り（S4.1 / style/presets.ts）、
+ * ユーザーが編集可能。プロンプト組み立て（assembleStylePrompt）は S4.3、
+ * 参照画像注入（refLayerIds）は S4.4 で使用する。
  */
 export interface StyleSpec {
-  /** 雰囲気ラベル（ポップ / 高級 / ナチュラル 等）。 */
-  mood: string
-  /** 自由記述の雰囲気ブリーフ（任意）。 */
-  brief?: string
-  /** カラーパレット（HEX 等、任意）。 */
-  palette?: string[]
-  /** タイポグラフィの質感（任意）。 */
-  typography?: string
+  /** mood プリセットキー（'pop' | 'luxe' | 'natural' 等）。未選択/カスタムは ''。 */
+  moodPreset: string
+  /** 雰囲気ブリーフ（自由記述）。プリセットで初期化、ユーザー編集可。 */
+  brief: string
+  /** カラーパレット（HEX 等）。プリセットで初期化、ユーザー編集可。 */
+  palette: string[]
+  /** タイポグラフィの質感（「丸ゴシック」「セリフ」等）。 */
+  typographyFeel: string
+  /** 装飾の質感（「キラキラ」「ミニマル」等）。 */
+  decoration: string
+  /** テキスト言語（'ja' / 'en' 等）。デフォルト DEFAULT_LANGUAGE。 */
+  language: string
+  /** 参照画像として同梱するレイヤー ID（最大 MAX_REF_LAYERS。S4.4 で使用）。 */
+  refLayerIds: string[]
 }
 
 /** プロジェクト。1 広告 = 1 プロジェクト。レイヤーは layers テーブルで正規化。 */
@@ -147,3 +156,9 @@ export const PROXY_URL_SETTING_KEY = 'gemini.proxyUrl'
 
 /** Gemini モデル名のデフォルト（nano banana / gemini-2.5-flash-image）。 */
 export const DEFAULT_MODEL = 'gemini-2.5-flash-image'
+
+/** StyleSpec.language のデフォルト（日本語ツール）。 */
+export const DEFAULT_LANGUAGE = 'ja'
+
+/** StyleSpec.refLayerIds の上限（plan 技術前提「参照画像は最大10枚」）。S4.4 でバリデーションに使用。 */
+export const MAX_REF_LAYERS = 10
