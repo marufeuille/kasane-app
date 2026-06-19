@@ -51,20 +51,71 @@ bd close <id>         # Complete work
 <!-- END BEADS INTEGRATION -->
 
 
-## Build & Test
+## プロジェクト概要
 
-_Add your build and test commands here_
+**Kasane Studio** — Gemini（nano banana / `gemini-2.5-flash-image`）を使った広告画像オーサリングツール。
+（表示名: Kasane Studio / 短縮: Kasane / パッケージ・リポジトリ名: `kasane-studio`）
+名前の由来はレイヤーを「重ねる」という本ツールの中核操作。狙いは「プロンプトガチャ」を消すこと。
 
-```bash
-# Example:
-# npm install
-# npm test
+**中核設計: 生成と配置・微調整を分離する**
+- Gemini は「パーツの見た目生成」と「写真全体加工」に専念
+- 配置 / 移動 / 拡縮 / 回転 / 透過(不透明度) は **ローカルのレイヤーキャンバスで即時・無API**
+- `StyleSpec`（雰囲気）を一度設定し全パーツ生成に自動注入＋既存パーツを参照画像化して統一感を出す
+- ユーザーは自由文でなくフィールド入力 → アプリが決定論的にプロンプトを組み立て、再現性を担保
+
+**確定方針**: PWA（Mac/iPad）/ 合成は **ハイブリッドのみ**（最終Gemini再合成パスは作らない）/
+テキストは **両対応**（AI焼き込み・実フォント）/ LLMは **BYOK**（まずGeminiのみ）/
+MVP最優先は **レイヤー微調整(E3)** と **統一感スタイル指定(E4)**。
+
+**技術前提**: 出力はインライン base64 PNG。aspectRatio(1:1/4:5/9:16/16:9)・解像度1K/2K指定可。
+参照画像は最大10枚。透過(アルファ)出力は非保証 → ブラウザ内背景除去（`@imgly/background-removal`）で担保。
+ブラウザ直叩きはCORS懸念 → dev proxy／個人用 Cloudflare Worker でフォールバック。BYOKキーはローカル(IndexedDB)保存。
+
+詳細設計は plan: `~/.claude/plans/gemini-mutable-rabbit.md` の付録を参照。
+
+## 技術スタック / ファイル構成
+
+React + TS + Vite + `vite-plugin-pwa` / Konva.js + react-konva（レイヤー&Transformer）/
+Zustand / Dexie(IndexedDB) / `@imgly/background-removal` / Gemini は `:generateContent` の薄ラッパ。
+
+```
+src/
+  types.ts  state/store.ts  db/db.ts
+  gemini/{client,prompt}.ts          # client=疎通, prompt=assembleStylePrompt
+  style/presets.ts  bg/removeBackground.ts
+  canvas/{CanvasStage,LayerNode}.tsx # react-konva + Transformer
+  panels/{Style,AddPart,Layers,Inspector,Settings}.tsx
+  export/exportImage.ts  App.tsx  main.tsx
 ```
 
-## Architecture Overview
+## Build & Test
 
-_Add a brief overview of your project architecture_
+まだ scaffold 前（最初の着手対象 S1.1 で雛形を作る）。完了後は以下を想定:
 
-## Conventions & Patterns
+```bash
+npm install
+npm run dev -- --host   # iPad から同一LANで開いて実機確認
+npm run build           # PWA ビルド（ホーム画面インストール確認）
+```
 
-_Add your project-specific conventions here_
+## 作業の進め方（bd でのタスク管理）
+
+このプロジェクトの作業は **すべて bd（beads, prefix `dt`）で管理** する。
+ad-hoc な TODO ではなく bd の issue として扱い、**実装前にバックログを立ててから着手** する方針。
+
+**バックログ構造**（エピック → ストーリー、`--parent` で親子化）:
+- `dt-4n4` E1 基盤・雛形 / `dt-kd9` E2 Geminiクライアント / `dt-5ae` E3 レイヤー編集[MVP] /
+  `dt-tud` E4 スタイル統一[MVP] / `dt-b9l` E5 パーツ作成 / `dt-48a` E6 出力&PWA
+- MVP対象は `mvp` ラベル（`bd list -l mvp`）、優先度 P0〜P2
+- **依存はストーリー間で張る**（エピックはブロック依存に使えず親子のみ）
+
+**基本フロー**:
+```bash
+bd ready                                  # 今やれる最小タスク（最初は S1.1 = dt-4n4.1）
+bd show <id>                              # 詳細
+bd update <id> --status in_progress       # 着手
+bd close <id>                             # 完了（→次が ready に浮く）
+bd list -l mvp                            # MVPだけ
+bd dep tree <id>                          # 依存ツリー
+```
+- ストーリー内の細タスクは着手時に `bd create --parent <story> --deps 'discovered-from:<story>'` でぶら下げる。
