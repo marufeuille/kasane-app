@@ -28,12 +28,15 @@ import {
 } from '../db/db'
 import { defaultStyleSpec } from '../style/presets'
 import type {
+  AiPartLayer,
   AspectRatio,
   ImageBlob,
   Layer,
+  PhotoLayer,
   Project,
   Resolution,
   StyleSpec,
+  TextLayer,
   Transform,
 } from '../types'
 
@@ -48,10 +51,19 @@ export interface CreateProjectInput {
   styleSpec?: StyleSpec
 }
 
-/** 永続化しないレイヤーフィールド（id/kind/projectId は不変、order は再掃引で決まる）。 */
-export type LayerMutablePatch = Partial<
-  Omit<Layer, 'id' | 'kind' | 'projectId' | 'order'>
+/**
+ * 永続化しないレイヤーフィールド（id/kind/projectId は不変、order は再掃引で決まる）。
+ * 判別共用体を Omit<Layer, ...> すると共用体の共通フィールド（LayerBase 分）しか残らず、
+ * TextLayer 固有の text/fontFamily/fontSize/fontWeight/color/align が抜けるため、
+ * 各メンバを Omit した Partial の和集合で表す。
+ */
+type LayerMutablePatchOf<L extends Layer> = Partial<
+  Omit<L, 'id' | 'kind' | 'projectId' | 'order'>
 >
+export type LayerMutablePatch =
+  | LayerMutablePatchOf<PhotoLayer>
+  | LayerMutablePatchOf<AiPartLayer>
+  | LayerMutablePatchOf<TextLayer>
 
 export interface KasaneState {
   /** 現在編集中のプロジェクト（未作成なら null）。 */

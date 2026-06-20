@@ -101,6 +101,9 @@ export interface AiPartLayer extends LayerBase {
   prompt?: string
 }
 
+/** テキストの水平揃え（Konva Text の align に対応）。 */
+export type TextAlign = 'left' | 'center' | 'right'
+
 /** 実フォントテキストレイヤー。AI 焼き込みではなく実フォントで描画（テキスト両対応）。 */
 export interface TextLayer extends LayerBase {
   kind: 'text'
@@ -109,6 +112,8 @@ export interface TextLayer extends LayerBase {
   fontSize: number
   fontWeight: number
   color: string
+  /** 水平揃え（左 / 中央 / 右）。 */
+  align: TextAlign
 }
 
 /**
@@ -190,6 +195,22 @@ export const DEFAULT_LANGUAGE = 'ja'
 
 /** LayerBase.blendMode のデフォルト（通常合成 = source-over）。 */
 export const DEFAULT_BLEND_MODE: BlendMode = 'source-over'
+
+/** TextLayer.fontFamily のデフォルト（ゴシック系・日本語フォント優先スタック）。 */
+export const DEFAULT_TEXT_FONT_FAMILY =
+  '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif'
+
+/** TextLayer.fontSize のデフォルト（論理 px。Inspector / Transformer で調整前提の出発点）。 */
+export const DEFAULT_TEXT_FONT_SIZE = 64
+
+/** TextLayer.fontWeight のデフォルト（通常 = 400）。 */
+export const DEFAULT_TEXT_FONT_WEIGHT = 400
+
+/** TextLayer.color のデフォルト（テキスト色）。 */
+export const DEFAULT_TEXT_COLOR = '#1A1A1A'
+
+/** TextLayer.align のデフォルト（左揃え）。 */
+export const DEFAULT_TEXT_ALIGN: TextAlign = 'left'
 
 /** StyleSpec.refLayerIds の上限（plan 技術前提「参照画像は最大10枚」）。S4.4 でバリデーションに使用。 */
 export const MAX_REF_LAYERS = 10

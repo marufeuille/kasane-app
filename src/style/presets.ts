@@ -11,7 +11,12 @@
  * - パレットが保持される（palette: string[]）
  * - StyleSpec 全体は defaultStyleSpec で空/既定値の完全なオブジェクトを生成
  */
-import { DEFAULT_LANGUAGE, type StyleSpec } from '../types'
+import {
+  DEFAULT_LANGUAGE,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_TEXT_FONT_WEIGHT,
+  type StyleSpec,
+} from '../types'
 
 /** mood プリセット1件分。選択時に StyleSpec の各フィールドへ展開される。 */
 export interface MoodPreset {
@@ -105,5 +110,77 @@ export function defaultStyleSpec(): StyleSpec {
     decoration: '',
     language: DEFAULT_LANGUAGE,
     refLayerIds: [],
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * テキストレイヤーのスタイル提案（S5.3 / dt-b9l.3）
+ *
+ * 中核設計（プロンプトガチャを消す）のテキスト版: ユーザーは自由文ではなく
+ * StyleSpec（雰囲気）を設定し、新規テキスト追加時にアプリが決定論的に
+ * フォント / 色 / 太さを出発点として提案する。その後 Inspector で自由編集できる。
+ * ------------------------------------------------------------------ */
+
+/** パレットのうち背景・余白として使われやすい白系かを判定（テキスト色選択から除外）。 */
+function isBackgroundIsh(color: string): boolean {
+  return /^#f{3,6}$/i.test(color.trim())
+}
+
+/**
+ * typographyFeel の文字列からフォントファミリ（CSS font-family スタック）を推論する。
+ * 「セリフ / 明朝」→ 明朝系、「手書き」→ 筆記系、それ以外（ゴシック/丸ゴシック等）→ ゴシック系。
+ * language で日本語フォントと欧文フォントを使い分ける。
+ */
+export function suggestTextFontFamily(feel: string, language: string): string {
+  const f = feel.toLowerCase()
+  if (/(手書き|筆記|cursive|script)/.test(f)) {
+    return '"Hiragino Maru Gothic Pro", "Yu Gyosho", "Noto Sans JP", cursive'
+  }
+  const isSerif = /(セリフ|明朝|serif)/.test(f)
+  if (language === 'ja') {
+    return isSerif
+      ? '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif'
+      : '"Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif'
+  }
+  return isSerif ? 'Georgia, "Times New Roman", serif' : 'system-ui, sans-serif'
+}
+
+/**
+ * palette からテキスト色として使いやすい色を決定論的に選ぶ。
+ * プリセットの palette は [メイン, アクセント, ..., 背景(白)] 順で並ぶことが多く、
+ * 末尾の白は背景・余白なので除外した最初の色をテキスト色の候補とする。
+ * palette が空なら既定のテキスト色（DEFAULT_TEXT_COLOR）。
+ */
+export function suggestTextColor(palette: string[]): string {
+  const usable = palette.filter((c) => !isBackgroundIsh(c))
+  return usable[0] ?? DEFAULT_TEXT_COLOR
+}
+
+/**
+ * typographyFeel からフォントの太さを推論する。
+ * 「太字 / 太ゴシック / ヘビー / bold / black」を含むなら 700、それ以外は 400（通常）。
+ */
+export function suggestTextFontWeight(feel: string): number {
+  return /(太字|太ゴシック|ヘビー|bold|black)/i.test(feel)
+    ? 700
+    : DEFAULT_TEXT_FONT_WEIGHT
+}
+
+/** 提案されるテキストスタイル（新規 TextLayer の出発点）。 */
+export interface TextStyleSuggestion {
+  fontFamily: string
+  color: string
+  fontWeight: number
+}
+
+/**
+ * StyleSpec からテキストスタイル（フォント / 色 / 太さ）を一括提案する。
+ * 新規テキストレイヤー追加時に CanvasStage が呼び、得られた値を TextLayer の初期値とする。
+ */
+export function suggestTextStyle(style: StyleSpec): TextStyleSuggestion {
+  return {
+    fontFamily: suggestTextFontFamily(style.typographyFeel, style.language),
+    color: suggestTextColor(style.palette),
+    fontWeight: suggestTextFontWeight(style.typographyFeel),
   }
 }

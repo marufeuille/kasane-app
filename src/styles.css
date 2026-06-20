@@ -290,6 +290,11 @@ body {
   color: var(--text-faint);
 }
 
+.canvas-stage__actions {
+  display: flex;
+  gap: 6px;
+}
+
 /* Footer */
 .app__footer {
   padding: 8px 16px;
@@ -522,6 +527,96 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   margin-top: 2px;
+}
+
+/* テキストレイヤー専用フィールド（S5.3 / dt-b9l.3） */
+.inspector__textarea {
+  resize: vertical;
+  min-height: 40px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.inspector__row2 {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.inspector__col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspector__col--narrow {
+  flex: 0 0 76px;
+}
+
+.inspector__colorrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspector__color {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-2);
+  cursor: pointer;
+}
+
+.inspector__color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.inspector__color::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.inspector__hex {
+  flex: 1 1 auto;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segmented__btn {
+  flex: 1 1 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-dim);
+  padding: 7px 0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.segmented__btn:last-child {
+  border-right: none;
+}
+
+.segmented__btn:hover {
+  color: var(--text);
+}
+
+.segmented__btn.is-active {
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
 /* LayersPanel（レイヤー一覧） */

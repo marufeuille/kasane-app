@@ -19,11 +19,12 @@ import {
 } from 'react-konva'
 import type Konva from 'konva'
 import { useKasane, genId } from '../state/store'
+import { suggestTextStyle } from '../style/presets'
 import { canvasSizeFor, ASPECT_LABELS } from './presets'
 import { coverTransform, bakeScale } from './geometry'
 import LayerNode from './LayerNode'
-import { DEFAULT_BLEND_MODE } from '../types'
-import type { AspectRatio, ImageBlob, PhotoLayer } from '../types'
+import { DEFAULT_BLEND_MODE, DEFAULT_TEXT_ALIGN } from '../types'
+import type { AspectRatio, ImageBlob, PhotoLayer, TextLayer } from '../types'
 
 /** 画像ファイルの自然寸法を取得（DOM Image 経由）。失敗時は 0x0。 */
 function readImageDimensions(
@@ -51,6 +52,7 @@ export default function CanvasStage() {
   const addLayer = useKasane((s) => s.addLayer)
   const selectLayer = useKasane((s) => s.selectLayer)
   const updateTransform = useKasane((s) => s.updateTransform)
+  const updateLayer = useKasane((s) => s.updateLayer)
   const saveImageBlob = useKasane((s) => s.saveImageBlob)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -129,6 +131,45 @@ export default function CanvasStage() {
       selectLayer(photo.id)
     },
     [project, dimensions, addLayer, selectLayer, saveImageBlob],
+  )
+
+  /**
+   * テキストレイヤーを追加。StyleSpec からフォント / 色 / 太さを提案し、
+   * キャンバス寸法に合わせたサイズ・配置の初期値で生成（acceptance: StyleSpecから提案）。
+   */
+  const addTextLayer = useCallback(
+    async (): Promise<void> => {
+      if (!project) return
+      const suggestion = suggestTextStyle(project.styleSpec)
+      const fontSize = Math.round(dimensions.width * 0.08)
+      const textLayer: TextLayer = {
+        id: genId(),
+        projectId: project.id,
+        kind: 'text',
+        name: 'テキスト',
+        visible: true,
+        order: 0, // addLayer が末尾（最前面）へ再採番
+        transform: {
+          x: Math.round(dimensions.width * 0.1),
+          y: Math.round(dimensions.height * 0.42),
+          width: Math.round(dimensions.width * 0.8),
+          // Konva Text は fontSize から高さを決めるため参照用（Transformer の当たり判定に使用）
+          height: Math.round(fontSize * 1.4),
+          rotation: 0,
+          opacity: 1,
+        },
+        blendMode: DEFAULT_BLEND_MODE,
+        text: 'テキスト',
+        fontFamily: suggestion.fontFamily,
+        fontSize,
+        fontWeight: suggestion.fontWeight,
+        color: suggestion.color,
+        align: DEFAULT_TEXT_ALIGN,
+      }
+      await addLayer(textLayer)
+      selectLayer(textLayer.id)
+    },
+    [project, dimensions, addLayer, selectLayer],
   )
 
   const onDrop = useCallback(
@@ -226,20 +267,35 @@ export default function CanvasStage() {
                     const node = transformerRef.current?.nodes()[0]
                     const id = selectedLayerId
                     if (!node || !id) return
-                    // リサイズ（scaleX/scaleY）を寸法に焼き込み、scale を 1 に戻す。
-                    const baked = bakeScale(
-                      node.width(),
-                      node.height(),
-                      node.scaleX(),
-                      node.scaleY(),
-                    )
-                    void updateTransform(id, {
-                      x: node.x(),
-                      y: node.y(),
-                      width: baked.width,
-                      height: baked.height,
-                      rotation: node.rotation(),
-                    })
+                    const sx = node.scaleX()
+                    const sy = node.scaleY()
+                    const layer = layers.find((l) => l.id === id)
+                    if (layer?.kind === 'text') {
+                      // テキストは Konva が fontSize で文字サイズを決めるため、
+                      // リサイズ（scaleX/scaleY）を fontSize と折り返し幅に焼き込む。
+                      // 1回の updateLayer で反映する（updateLayer / updateTransform を別々に呼ぶと
+                      // 非同期で互いに get()→set() し合い、どちらかの更新が消えるため）。
+                      void updateLayer(id, {
+                        fontSize: Math.max(1, Math.round(layer.fontSize * sy)),
+                        transform: {
+                          ...layer.transform,
+                          x: node.x(),
+                          y: node.y(),
+                          width: Math.max(1, Math.round(node.width() * sx)),
+                          rotation: node.rotation(),
+                        },
+                      })
+                    } else {
+                      // 画像レイヤー: リサイズ（scaleX/scaleY）を寸法に焼き込み、scale を 1 に戻す。
+                      const baked = bakeScale(node.width(), node.height(), sx, sy)
+                      void updateTransform(id, {
+                        x: node.x(),
+                        y: node.y(),
+                        width: baked.width,
+                        height: baked.height,
+                        rotation: node.rotation(),
+                      })
+                    }
                     node.scaleX(1)
                     node.scaleY(1)
                   }}
@@ -280,13 +336,22 @@ export default function CanvasStage() {
         <span className="canvas-stage__hint">
           {dimensions.width}×{dimensions.height}px · {layers.length} レイヤー
         </span>
-        <button
-          type="button"
-          className="btn btn--ghost btn--sm"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          ＋ 写真
-        </button>
+        <div className="canvas-stage__actions">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => void addTextLayer()}
+          >
+            ＋ テキスト
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            ＋ 写真
+          </button>
+        </div>
       </div>
     </div>
   )
