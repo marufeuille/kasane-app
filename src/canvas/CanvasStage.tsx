@@ -1,21 +1,26 @@
 /**
  * Kasane Studio — レイヤーキャンバスのルート（react-konva Stage/Layer）。
  *
- * S3.1（dt-5ae.1）で実装する中核:
- * - 広告サイズプリセット（CANVAS_PRESETS）を project.aspectRatio から解決し、
- *   Stage の論理寸法を設定（acceptance: サイズプリセット切替でキャンバス寸法が変わる）。
- * - layers を order 昇順（背面→前面）で描画（acceptance: 複数レイヤーが z 順に正しく描画される）。
- * - 写真をアップロードしてベースレイヤー（PhotoLayer）として表示できる導線（cover フィット）。
- * - iPad のタッチ操作が破綻しないよう、Stage 周辺は touch-action を制御。
+ * S3.1（dt-5ae.1）: Stage/Layer 構築・広告サイズプリセット・写真ベースレイヤー表示・z 順描画。
+ * S3.2（dt-5ae.2）: 選択レイヤーへの Konva Transformer 付与。
+ * - ドラッグで移動（LayerNode の draggable + onDragEnd）。
+ * - ハンドルで拡縮・回転（Transformer の onTransformEnd → updateTransform）。
+ * - 選択ノードを Transformer にアタッチ／解除、背景タップで選択解除。
+ * - 表示スケール（scale）の逆数でハンドル寸法を補正し、iPad タッチでも操作しやすく保つ。
  *
- * 配置・移動・拡縮・回転（Transformer）は S3.2 で追加。ここでは表示とベースレイヤー追加に専念。
+ * 変更は store（updateTransform）経由で IndexedDB に永続化 → リロード後も保持される。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DragEvent } from 'react'
-import { Layer as KonvaLayer, Stage } from 'react-konva'
+import {
+  Layer as KonvaLayer,
+  Stage,
+  Transformer as KonvaTransformer,
+} from 'react-konva'
+import type Konva from 'konva'
 import { useKasane, genId } from '../state/store'
 import { canvasSizeFor, ASPECT_LABELS } from './presets'
-import { coverTransform } from './geometry'
+import { coverTransform, bakeScale } from './geometry'
 import LayerNode from './LayerNode'
 import type { AspectRatio, ImageBlob, PhotoLayer } from '../types'
 
@@ -41,12 +46,18 @@ function readImageDimensions(
 export default function CanvasStage() {
   const project = useKasane((s) => s.project)
   const layers = useKasane((s) => s.layers)
+  const selectedLayerId = useKasane((s) => s.selectedLayerId)
   const addLayer = useKasane((s) => s.addLayer)
   const selectLayer = useKasane((s) => s.selectLayer)
+  const updateTransform = useKasane((s) => s.updateTransform)
   const saveImageBlob = useKasane((s) => s.saveImageBlob)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  /** Transformer 本体への参照（選択ノードのアタッチに使用）。 */
+  const transformerRef = useRef<Konva.Transformer>(null)
+  /** layerId → Konva ノード のレジストリ（LayerNode の onNodeRef で登録）。 */
+  const nodeRegistry = useRef<Map<string, Konva.Node>>(new Map())
   const [scale, setScale] = useState(0)
   const [dragging, setDragging] = useState(false)
 
@@ -74,6 +85,18 @@ export default function CanvasStage() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [dimensions.width, dimensions.height])
+
+  // 選択中レイヤーのノードを Transformer にアタッチ（選択解除で外す）。
+  // layers が変わる（追加/削除/順序変更）毎に再アタッチし、古いノード参照を外さない。
+  useEffect(() => {
+    const tr = transformerRef.current
+    if (!tr) return
+    const node = selectedLayerId
+      ? nodeRegistry.current.get(selectedLayerId)
+      : undefined
+    tr.nodes(node ? [node] : [])
+    tr.getLayer()?.batchDraw()
+  }, [selectedLayerId, layers])
 
   /** 写真ファイルをベースレイヤー（PhotoLayer）として追加。 */
   const addPhotoFromFile = useCallback(
@@ -116,9 +139,26 @@ export default function CanvasStage() {
     [addPhotoFromFile],
   )
 
+  /**
+   * Stage の背景（Layer または Stage 本体）をクリック/タップした時は選択解除。
+   * ノードや Transformer ハンドル上では維持（getClassName で判定）。
+   */
+  const handleStageMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>): void => {
+      const target = e.target
+      const onEmpty =
+        target === target.getStage() || target.getClassName() === 'Layer'
+      if (onEmpty) selectLayer(null)
+    },
+    [selectLayer],
+  )
+
   // 表示サイズ。scale 未確定（初回）時は 0 にならないよう最低 1px。
   const stageW = Math.max(1, dimensions.width * scale)
   const stageH = Math.max(1, dimensions.height * scale)
+  // Stage を表示縮小しているので、Transformer のハンドル/枠線を画面上で適正サイズに
+  // 保つため scale の逆数で補正する（小画面・iPad でハンドルが小さくなりすぎない）。
+  const invScale = scale > 0 ? 1 / scale : 1
 
   const visibleLayers = layers.filter((l) => l.visible)
 
@@ -137,8 +177,7 @@ export default function CanvasStage() {
         onDrop={onDrop}
         onClick={() => {
           // 空状態（レイヤー0件）時はキャンバスクリックでファイル選択を開く。
-          // レイヤーがある時は誤操作を避け、追加は下の「＋ 写真」ボタン or DnD のみ。
-          // （レイヤー選択インタラクションは S3.2 の Transformer で導入）
+          // レイヤーがある時は Konva 側で選択インタラクションを処理するため、ここでは何もしない。
           if (visibleLayers.length === 0) fileInputRef.current?.click()
         }}
         role={visibleLayers.length === 0 ? 'button' : undefined}
@@ -147,11 +186,62 @@ export default function CanvasStage() {
       >
         <div className="canvas-stage__inner" style={{ width: stageW, height: stageH }}>
           {scale > 0 ? (
-            <Stage width={stageW} height={stageH} scaleX={scale} scaleY={scale}>
+            <Stage
+              width={stageW}
+              height={stageH}
+              scaleX={scale}
+              scaleY={scale}
+              onMouseDown={handleStageMouseDown}
+              onTouchStart={handleStageMouseDown}
+            >
               <KonvaLayer>
                 {visibleLayers.map((layer) => (
-                  <LayerNode key={layer.id} layer={layer} />
+                  <LayerNode
+                    key={layer.id}
+                    layer={layer}
+                    selected={layer.id === selectedLayerId}
+                    onNodeRef={(node) => {
+                      if (node) nodeRegistry.current.set(layer.id, node)
+                      else nodeRegistry.current.delete(layer.id)
+                    }}
+                  />
                 ))}
+                <KonvaTransformer
+                  ref={transformerRef}
+                  rotateEnabled
+                  keepRatio={false}
+                  flipEnabled={false}
+                  borderStroke="#7c3aed"
+                  anchorStroke="#7c3aed"
+                  anchorFill="#ffffff"
+                  anchorSize={12 * invScale}
+                  anchorCornerRadius={3 * invScale}
+                  borderStrokeWidth={1.5 * invScale}
+                  rotateAnchorOffset={28 * invScale}
+                  onTransformEnd={() => {
+                    // e.target はバインディング次第で Transformer/ノードが揺れるため、
+                    // Transformer にアタッチ中のノードを直接取得して確実に読む。
+                    const node = transformerRef.current?.nodes()[0]
+                    const id = selectedLayerId
+                    if (!node || !id) return
+                    // リサイズ（scaleX/scaleY）を寸法に焼き込み、scale を 1 に戻す。
+                    const baked = bakeScale(
+                      node.width(),
+                      node.height(),
+                      node.scaleX(),
+                      node.scaleY(),
+                    )
+                    void updateTransform(id, {
+                      x: node.x(),
+                      y: node.y(),
+                      width: baked.width,
+                      height: baked.height,
+                      rotation: node.rotation(),
+                    })
+                    node.scaleX(1)
+                    node.scaleY(1)
+                  }}
+                />
               </KonvaLayer>
             </Stage>
           ) : (

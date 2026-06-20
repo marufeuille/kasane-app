@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { coverTransform, fitCover } from './geometry'
+import { bakeScale, coverTransform, fitCover } from './geometry'
 
 describe('fitCover — cover フィット計算', () => {
   it('同アスペクト比なら枠いっぱいに一致する', () => {
@@ -55,5 +55,35 @@ describe('coverTransform — 写真レイヤー追加時の初期 Transform', ()
     expect(t.opacity).toBe(1)
     expect(t.width).toBeCloseTo(3840, 5)
     expect(t.height).toBeCloseTo(1920, 5)
+  })
+})
+
+describe('bakeScale — Transformer リサイズの寸法焼き込み', () => {
+  it('scaleX/scaleY を width/height に乗算する', () => {
+    // 1000x1000 を 1.5 倍 → 1500x1500
+    expect(bakeScale(1000, 1000, 1.5, 1.5)).toEqual({
+      width: 1500,
+      height: 1500,
+    })
+  })
+
+  it('縦横別々のスケールを反映する（自由変形）', () => {
+    // 800x600 を 横1.25 / 縦0.5 → 1000x300
+    expect(bakeScale(800, 600, 1.25, 0.5)).toEqual({
+      width: 1000,
+      height: 300,
+    })
+  })
+
+  it('縮小（scale < 1）も寸法に反映する', () => {
+    expect(bakeScale(1080, 1080, 0.5, 0.5)).toEqual({
+      width: 540,
+      height: 540,
+    })
+  })
+
+  it('0 や負の寸法は最小 1px にクリップされる（描画消失防止）', () => {
+    expect(bakeScale(1000, 1000, 0, 0)).toEqual({ width: 1, height: 1 })
+    expect(bakeScale(1000, 1000, -2, 0.5)).toEqual({ width: 1, height: 500 })
   })
 })
