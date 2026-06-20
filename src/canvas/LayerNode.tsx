@@ -4,15 +4,27 @@
  * 判別共用体 Layer（photo / ai-part / text）を kind で分岐し、
  * react-konva の Image / Text として描画する。transform（位置・拡縮・回転・不透明度）を反映。
  *
- * S3.1（dt-5ae.1）の範囲:
- * - z 順は親（CanvasStage）が order 昇順で並べることで表現（後追加 = 前面）。
- * - 配置・移動・拡縮・回転のインタラクション（Transformer）は S3.2 で追加するため、
- *   ここでは listening={false} でイベントを握らず、Stage のタッチ操作が破綻しないようにする。
+ * S3.2（dt-5ae.2）の範囲:
+ * - クリック/タップでレイヤーを選択（selectLayer）。
+ * - 選択中レイヤーはドラッグで移動（onDragEnd → updateTransform）。
+ * - 拡縮・回転は親（CanvasStage）の Transformer が担当。Transformer をアタッチするため、
+ *   マウント時に Konva ノードを onNodeRef で親へ伝える。
+ * - z 順は親が order 昇順で並べることで表現（後追加 = 前面）。
  */
 import { useEffect, useState } from 'react'
 import { Image as KonvaImage, Text as KonvaText } from 'react-konva'
+import type Konva from 'konva'
 import { useKasane } from '../state/store'
 import type { AiPartLayer, ImageBlob, Layer, PhotoLayer, TextLayer } from '../types'
+
+/** LayerNode の props。親（CanvasStage）から選択状態とノード参照コールバックを受ける。 */
+export interface LayerNodeProps {
+  layer: Layer
+  /** 選択中か（Transformer 表示・ドラッグ可否の判定に使用）。 */
+  selected: boolean
+  /** Konva ノードがマウント/アンマウントされた時に呼ばれる（Transformer アタッチ用）。 */
+  onNodeRef?: (node: Konva.Node | null) => void
+}
 
 /**
  * IndexedDB から画像 Blob をロードして保持する。
@@ -68,12 +80,23 @@ function fontStyleFor(fontWeight: number): 'normal' | 'bold' {
 }
 
 /** 写真 / AIパーツ（いずれも画像 Blob を参照）の描画。 */
-function ImageLayerNode({ layer }: { layer: PhotoLayer | AiPartLayer }) {
+function ImageLayerNode({
+  layer,
+  selected,
+  onNodeRef,
+}: {
+  layer: PhotoLayer | AiPartLayer
+  selected: boolean
+  onNodeRef?: (node: Konva.Node | null) => void
+}) {
+  const selectLayer = useKasane((s) => s.selectLayer)
+  const updateTransform = useKasane((s) => s.updateTransform)
   const imageBlob = useImageBlob(layer.blobId)
   const image = useHtmlImage(imageBlob?.blob)
   const { transform: t } = layer
   return (
     <KonvaImage
+      ref={onNodeRef}
       image={image}
       x={t.x}
       y={t.y}
@@ -81,16 +104,37 @@ function ImageLayerNode({ layer }: { layer: PhotoLayer | AiPartLayer }) {
       height={t.height}
       rotation={t.rotation}
       opacity={t.opacity}
-      listening={false}
+      // 表示中はタップ/クリックで選択できるように listening する。
+      // （背面レイヤーを覆う全面レイヤーが邪魔するのは自然な挙動）
+      listening
+      // 選択中のみ直接ドラッグ移動を許可（拡縮・回転は Transformer）。
+      draggable={selected}
+      onClick={() => selectLayer(layer.id)}
+      onTap={() => selectLayer(layer.id)}
+      onDragEnd={(e) => {
+        const node = e.target
+        void updateTransform(layer.id, { x: node.x(), y: node.y() })
+      }}
     />
   )
 }
 
 /** 実フォントテキストの描画（テキスト両対応の実フォント側）。 */
-function TextLayerNode({ layer }: { layer: TextLayer }) {
+function TextLayerNode({
+  layer,
+  selected,
+  onNodeRef,
+}: {
+  layer: TextLayer
+  selected: boolean
+  onNodeRef?: (node: Konva.Node | null) => void
+}) {
+  const selectLayer = useKasane((s) => s.selectLayer)
+  const updateTransform = useKasane((s) => s.updateTransform)
   const { transform: t } = layer
   return (
     <KonvaText
+      ref={onNodeRef}
       text={layer.text}
       fontFamily={layer.fontFamily}
       fontSize={layer.fontSize}
@@ -101,23 +145,52 @@ function TextLayerNode({ layer }: { layer: TextLayer }) {
       width={t.width}
       rotation={t.rotation}
       opacity={t.opacity}
-      listening={false}
+      listening
+      draggable={selected}
+      onClick={() => selectLayer(layer.id)}
+      onTap={() => selectLayer(layer.id)}
+      onDragEnd={(e) => {
+        const node = e.target
+        void updateTransform(layer.id, { x: node.x(), y: node.y() })
+      }}
     />
   )
 }
 
 /**
  * 単一レイヤーを描画。kind でノード種別を切り替える。
- * （acceptance: 複数レイヤーが z 順に正しく描画される）
+ * （acceptance: 複数レイヤーが z 順に描画される / 選択で Transformer 操作）
  */
-export default function LayerNode({ layer }: { layer: Layer }) {
+export default function LayerNode({
+  layer,
+  selected,
+  onNodeRef,
+}: LayerNodeProps) {
   switch (layer.kind) {
     case 'photo':
-      return <ImageLayerNode layer={layer} />
+      return (
+        <ImageLayerNode
+          layer={layer}
+          selected={selected}
+          onNodeRef={onNodeRef}
+        />
+      )
     case 'ai-part':
-      return <ImageLayerNode layer={layer} />
+      return (
+        <ImageLayerNode
+          layer={layer}
+          selected={selected}
+          onNodeRef={onNodeRef}
+        />
+      )
     case 'text':
-      return <TextLayerNode layer={layer} />
+      return (
+        <TextLayerNode
+          layer={layer}
+          selected={selected}
+          onNodeRef={onNodeRef}
+        />
+      )
     default: {
       // 判別共用体を網羅した保証のための静的チェック。
       const _exhaustive: never = layer

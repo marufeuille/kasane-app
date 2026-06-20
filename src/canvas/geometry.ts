@@ -58,3 +58,26 @@ export function coverTransform(
   const fit = fitCover(contentW, contentH, frame)
   return { ...fit, rotation: 0, opacity: 1 }
 }
+
+/**
+ * Transformer のリサイズ操作（scaleX/scaleY）を width/height に焼き込む。
+ *
+ * Konva の Transformer はリサイズをノードの scaleX/scaleY で表現するが、
+ * 本アプリの Transform は寸法を width/height で持ち、Konva ノードにも
+ * width/height を直接渡す（scaleX/scaleY は常時 1）。そのため操作終了時に
+ * scale を寸法へ焼き込んで scaleX/scaleY を 1 に戻し、store を寸法ベースで
+ * 一元管理する（リロード後も寸法として永続化される）。
+ *
+ * 負や 0 の寸法による描画消失を防ぐため、結果は最小 1px にクリップする。
+ */
+export function bakeScale(
+  width: number,
+  height: number,
+  scaleX: number,
+  scaleY: number,
+): { width: number; height: number } {
+  return {
+    width: Math.max(1, width * scaleX),
+    height: Math.max(1, height * scaleY),
+  }
+}
