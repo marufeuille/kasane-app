@@ -50,6 +50,7 @@ function makeLayer(over: Partial<Layer> = {}): Layer {
     visible: true,
     order: 0,
     transform: { x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1 },
+    blendMode: 'source-over',
     blobId: 'b1',
     ...over,
   } as Layer

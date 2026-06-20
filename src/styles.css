@@ -497,3 +497,29 @@ body {
   flex: 0 0 auto;
   line-height: 1;
 }
+
+/* InspectorPanel（選択レイヤーの不透明度・ブレンド・z順） */
+.inspector__slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.field__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.field__value {
+  font-size: 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.inspector__zorder {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 2px;
+}

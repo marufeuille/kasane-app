@@ -13,6 +13,32 @@
 /** レイヤー種別。photo=背景写真, ai-part=Gemini生成パーツ, text=実フォントテキスト。 */
 export type LayerKind = 'photo' | 'ai-part' | 'text'
 
+/**
+ * レイヤーのブレンドモード。Konva/Canvas の globalCompositeOperation に対応し、
+ * 下位レイヤーとの合成方法を指定する（乗算 / スクリーン / オーバーレイ 等）。
+ * 不透明度（transform.opacity）とは直交する合成制御。S3.3 で Inspector から編集。
+ * 'destination-in' は下位レイヤーの形で切り抜くクリッピングマスク相当。
+ */
+export type BlendMode =
+  | 'source-over'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+  | 'hue'
+  | 'saturation'
+  | 'color'
+  | 'luminosity'
+  | 'lighter'
+  | 'destination-in'
+
 /** 広告出力サイズのアスペクト比プリセット（plan の技術前提に準拠）。 */
 export type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9'
 
@@ -55,6 +81,8 @@ export interface LayerBase {
   order: number
   /** 変形（配置 / 移動 / 拡縮 / 回転 / 透過）。 */
   transform: Transform
+  /** ブレンドモード（下位レイヤーとの合成）。S3.3 で Inspector から編集。 */
+  blendMode: BlendMode
 }
 
 /** 写真レイヤー（背景）。画像本体は blobs テーブルの ImageBlob を参照する。 */
@@ -159,6 +187,9 @@ export const DEFAULT_MODEL = 'gemini-2.5-flash-image'
 
 /** StyleSpec.language のデフォルト（日本語ツール）。 */
 export const DEFAULT_LANGUAGE = 'ja'
+
+/** LayerBase.blendMode のデフォルト（通常合成 = source-over）。 */
+export const DEFAULT_BLEND_MODE: BlendMode = 'source-over'
 
 /** StyleSpec.refLayerIds の上限（plan 技術前提「参照画像は最大10枚」）。S4.4 でバリデーションに使用。 */
 export const MAX_REF_LAYERS = 10

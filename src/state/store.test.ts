@@ -36,6 +36,7 @@ function photoLayer(projectId: string, over: Partial<Layer> = {}): Layer {
     visible: true,
     order: 0,
     transform: { x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1 },
+    blendMode: 'source-over',
     blobId: 'b1',
     ...over,
   } as Layer
@@ -121,6 +122,30 @@ describe('layers — Zustand 経由で 追加 / 選択 / transform 更新', () =
     expect(l.name).toBe('背景')
     expect(l.visible).toBe(false)
   })
+
+  it('updateLayer でブレンドモードを更新し DB に永続化する（acceptance: ブレンド変更 / 値が保存される）', async () => {
+    const p = await useKasane.getState().createProject()
+    await useKasane.getState().addLayer(photoLayer(p.id, { id: 'l1' }))
+    await useKasane.getState().updateLayer('l1', { blendMode: 'multiply' })
+
+    const l = useKasane.getState().layers[0]
+    expect(l.blendMode).toBe('multiply')
+
+    // DB にも反映（リロード後も保持される = 値が保存される）
+    const fromDb = await db.layers.get('l1')
+    expect(fromDb?.blendMode).toBe('multiply')
+  })
+
+  it('updateTransform で不透明度を変更し DB に永続化する（acceptance: 透過が即時反映 / 値が保存される）', async () => {
+    const p = await useKasane.getState().createProject()
+    await useKasane.getState().addLayer(photoLayer(p.id, { id: 'l1' }))
+    await useKasane.getState().updateTransform('l1', { opacity: 0.25 })
+
+    const l = useKasane.getState().layers[0]
+    expect(l.transform.opacity).toBe(0.25)
+    const fromDb = await db.layers.get('l1')
+    expect(fromDb?.transform.opacity).toBe(0.25)
+  })
 })
 
 describe('hydrate — リロード後の復元', () => {
@@ -153,6 +178,7 @@ describe('hydrate — リロード後の復元', () => {
       visible: true,
       order: 0,
       transform: { x: 1, y: 2, width: 3, height: 4, rotation: 0, opacity: 1 },
+      blendMode: 'multiply',
       text: 'hello',
       fontFamily: 'sans',
       fontSize: 24,
