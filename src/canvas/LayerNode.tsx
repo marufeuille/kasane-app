@@ -142,6 +142,7 @@ function TextLayerNode({
       fontSize={layer.fontSize}
       fontStyle={fontStyleFor(layer.fontWeight)}
       fill={layer.color}
+      align={layer.align}
       x={t.x}
       y={t.y}
       width={t.width}

@@ -184,6 +184,7 @@ describe('hydrate — リロード後の復元', () => {
       fontSize: 24,
       fontWeight: 700,
       color: '#000',
+      align: 'left',
     })
     await db.settings.put({ key: API_KEY_SETTING_KEY, value: 'KEY123' })
 

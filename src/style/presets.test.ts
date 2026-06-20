@@ -4,7 +4,12 @@ import {
   applyMoodPreset,
   defaultStyleSpec,
   getMoodPreset,
+  suggestTextFontFamily,
+  suggestTextFontWeight,
+  suggestTextColor,
+  suggestTextStyle,
 } from './presets'
+import type { StyleSpec } from '../types'
 
 describe('MOOD_PRESETS — プリセット定義', () => {
   it('ポップ / 高級 / ナチュラル を含む', () => {
@@ -117,5 +122,99 @@ describe('defaultStyleSpec', () => {
     a.refLayerIds.push('x')
     expect(b.palette).toEqual([])
     expect(b.refLayerIds).toEqual([])
+  })
+})
+
+describe('suggestTextFontFamily — typographyFeel からフォントを推論（dt-b9l.3）', () => {
+  it('ゴシック系なら日本語ゴシックスタックを提案（ja）', () => {
+    const s = suggestTextFontFamily('丸ゴシック・太字・遊び心のある組み', 'ja')
+    expect(s).toContain('Hiragino Sans')
+    expect(s).toContain('sans-serif')
+  })
+
+  it('セリフ/明朝なら明朝スタックを提案（ja）', () => {
+    const s = suggestTextFontFamily('セリフ・細字〜中字・トラッキング広め', 'ja')
+    expect(s).toContain('Hiragino Mincho')
+    expect(s).toContain('serif')
+  })
+
+  it('手書き風なら筆記系スタックを提案', () => {
+    const s = suggestTextFontFamily('手書き風・やさしい組み', 'ja')
+    expect(s).toContain('cursive')
+  })
+
+  it('欧文（en）なら generic family にフォールバック', () => {
+    expect(suggestTextFontFamily('bold sans headlines', 'en')).toBe(
+      'system-ui, sans-serif',
+    )
+    expect(suggestTextFontFamily('elegant serif body', 'en')).toBe(
+      'Georgia, "Times New Roman", serif',
+    )
+  })
+
+  it('空の typographyFeel でも（ja 既定で）ゴシック系を返す', () => {
+    expect(suggestTextFontFamily('', 'ja')).toContain('sans-serif')
+  })
+})
+
+describe('suggestTextColor — palette からテキスト色を決定論的に選ぶ（dt-b9l.3）', () => {
+  it('白系（背景）を除外した最初の色を選ぶ', () => {
+    // luxe: ['#1A1A1A', '#C5A572', '#8C7853', '#F5F1E8', '#FFFFFF']
+    expect(
+      suggestTextColor(['#1A1A1A', '#C5A572', '#8C7853', '#F5F1E8', '#FFFFFF']),
+    ).toBe('#1A1A1A')
+  })
+
+  it('先頭が白でも次の色を選ぶ', () => {
+    expect(suggestTextColor(['#FFFFFF', '#FF6B6B', '#333333'])).toBe('#FF6B6B')
+  })
+
+  it('palette が空なら既定のテキスト色（DEFAULT_TEXT_COLOR）', () => {
+    expect(suggestTextColor([])).toBe('#1A1A1A')
+  })
+
+  it('palette が白一色でも既定のテキスト色にフォールバック', () => {
+    expect(suggestTextColor(['#FFFFFF', '#ffffff'])).toBe('#1A1A1A')
+  })
+})
+
+describe('suggestTextFontWeight — 太さを推論（dt-b9l.3）', () => {
+  it('「太字」を含むなら 700', () => {
+    expect(suggestTextFontWeight('丸ゴシック・太字・遊び心のある組み')).toBe(700)
+  })
+
+  it('「太字」を含まないなら 400（通常）', () => {
+    expect(suggestTextFontWeight('セリフ・細字〜中字')).toBe(400)
+    expect(suggestTextFontWeight('')).toBe(400)
+  })
+})
+
+describe('suggestTextStyle — フォント / 色 / 太さ を一括提案（dt-b9l.3）', () => {
+  it('pop プリセット相当ならゴシック・太字(700)・palette 先頭色', () => {
+    const style: StyleSpec = { ...defaultStyleSpec(), ...applyMoodPreset('pop') }
+    const suggestion = suggestTextStyle(style)
+    expect(suggestion.fontFamily).toContain('sans-serif')
+    expect(suggestion.fontWeight).toBe(700)
+    // pop の palette 先頭は #FF6B6B（白ではない）→ テキスト色候補
+    expect(suggestion.color).toBe('#FF6B6B')
+  })
+
+  it('luxe プリセット相当なら明朝・通常(400)・palette 先頭色', () => {
+    const style: StyleSpec = {
+      ...defaultStyleSpec(),
+      ...applyMoodPreset('luxe'),
+    }
+    const suggestion = suggestTextStyle(style)
+    expect(suggestion.fontFamily).toContain('serif')
+    expect(suggestion.fontWeight).toBe(400)
+    // luxe palette 先頭は #1A1A1A
+    expect(suggestion.color).toBe('#1A1A1A')
+  })
+
+  it('空の StyleSpec でも例外なく既定値を返す', () => {
+    const suggestion = suggestTextStyle(defaultStyleSpec())
+    expect(suggestion.fontFamily.length).toBeGreaterThan(0)
+    expect(suggestion.color).toBe('#1A1A1A')
+    expect(suggestion.fontWeight).toBe(400)
   })
 })
