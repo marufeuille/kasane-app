@@ -22,6 +22,7 @@ import { useKasane, genId } from '../state/store'
 import { canvasSizeFor, ASPECT_LABELS } from './presets'
 import { coverTransform, bakeScale } from './geometry'
 import LayerNode from './LayerNode'
+import { DEFAULT_BLEND_MODE } from '../types'
 import type { AspectRatio, ImageBlob, PhotoLayer } from '../types'
 
 /** 画像ファイルの自然寸法を取得（DOM Image 経由）。失敗時は 0x0。 */
@@ -121,6 +122,7 @@ export default function CanvasStage() {
         visible: true,
         order: 0, // addLayer が末尾（最前面）へ再採番
         transform: coverTransform(dims.width, dims.height, dimensions),
+        blendMode: DEFAULT_BLEND_MODE,
         blobId,
       }
       await addLayer(photo)

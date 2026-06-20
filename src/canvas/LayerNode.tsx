@@ -104,6 +104,8 @@ function ImageLayerNode({
       height={t.height}
       rotation={t.rotation}
       opacity={t.opacity}
+      // ブレンドモード（下位レイヤーとの合成）。Konva は globalCompositeOperation に反映。
+      globalCompositeOperation={layer.blendMode}
       // 表示中はタップ/クリックで選択できるように listening する。
       // （背面レイヤーを覆う全面レイヤーが邪魔するのは自然な挙動）
       listening
@@ -145,6 +147,7 @@ function TextLayerNode({
       width={t.width}
       rotation={t.rotation}
       opacity={t.opacity}
+      globalCompositeOperation={layer.blendMode}
       listening
       draggable={selected}
       onClick={() => selectLayer(layer.id)}
